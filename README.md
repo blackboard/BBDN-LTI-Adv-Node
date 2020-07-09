@@ -1,5 +1,7 @@
-# Blackboard Interactive Video Service
-This is a Node.js and React application that allows you to select, upload videos to embed inside the Ultra editor.
+# Blackboard LTI Advantage Sample Tool
+This is a Node.js and React application that allows you to create and grade an assignment.
+
+It's used to demonstrate all the features of LTI 1.3/Advantage
 
 See the respective README files for the UI app and server here:
 
