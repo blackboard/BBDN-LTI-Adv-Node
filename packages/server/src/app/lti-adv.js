@@ -166,7 +166,7 @@ exports.oidcLogin = function(req, res) {
     "&state=" +
     state +
     "&redirect_uri=" +
-    encodeURIComponent(req.query.target_link_uri) +
+    encodeURIComponent(`${config.frontendUrl}/lti13`) +
     "&client_id=" +
     config.bbClientId +
     "&nonce=" +

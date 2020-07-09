@@ -38,7 +38,7 @@ From the root run:
 
 Access the application via http://localhost:3000. You can customize the host name and port number by creating a server/config/config_override.json file (see the server/config/config.json file for a template)
 
-The LTI deep link launch link (and Redirect URI) is <host>/deeplink
+The LTI deep link launch link (and Redirect URI) is <host>/lti13
 
 # Docker
 

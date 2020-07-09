@@ -3,7 +3,7 @@ import moment from 'moment';
 import uuid from 'uuid';
 import config from '../config/config';
 import ltiAdv from './lti-adv';
-import redisUtil from '../util/redisutil';
+import assignmentService from './assignment-service';
 
 exports.createDeepContent = async (assignment, learnInfo, token) => {
   // get OAuth token, make REST API call
@@ -68,7 +68,7 @@ let createDeepLinkJwt = function (assignment, learnInfo) {
   const assignmentId = uuid.v4();
 
   // Save this assignment
-  redisUtil.redisSave(assignmentId, assignment);
+  assignmentService.saveAssignment(assignmentId, assignment);
 
   const contentItems = [{
     type: "ltiResourceLink",

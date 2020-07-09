@@ -45,6 +45,9 @@ params.setCourseName(decodeURIComponent(courseName as string));
 const isStudent = queryParams?.student;
 params.setStudent(isStudent === 'true');
 
+const isDeepLinking = queryParams?.dl;
+params.setDeepLinking(isDeepLinking === 'true');
+
 function App() {
   return (
     <Provider store={store}>

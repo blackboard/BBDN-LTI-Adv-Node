@@ -4,6 +4,7 @@ export class parameters {
   _nonce: string | undefined;
   _returnUrl: string | undefined;
   _isStudent: boolean | undefined;
+  _isDeepLink: boolean | undefined;
 
   private constructor() {
   }
@@ -46,6 +47,14 @@ export class parameters {
 
   public setStudent(student: boolean) {
     this._isStudent = student;
+  }
+
+  public isDeepLinking() {
+    return this._isDeepLink;
+  }
+
+  public setDeepLinking(dl: boolean) {
+    this._isDeepLink = dl;
   }
 
 }

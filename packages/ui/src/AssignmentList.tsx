@@ -24,7 +24,9 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
   useEffect(() => {
     fetch('/assignmentData').then(response => response.json()).then(data => {
       console.log(`assignmentData returned is ${JSON.stringify(data)}`);
-      //setAssignment(data);
+      if (data.id) {
+        setAssignment(data);
+      }
       setLoading(false);
     });
   }, []);
@@ -49,7 +51,11 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
 
   function onCancel() {
     alert('Cancel clicked; use the X in the upper left to close the panel');
-    // TODO send back to deep link response with no data
+    // TODO send back to deep link response with no data; what about when not deep linking?
+  }
+
+  const xhrHeaders = {
+    'Content-type': 'application/json'
   }
 
   function onSubmit() {
@@ -57,9 +63,7 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
 
     // TODO validate name
 
-    if (params.isStudent()) {
-      // TODO Call endpoint to save the submission and send the grade back to Learn
-    } else {
+    if (params.isDeepLinking()) {
       // Send request to the Node server to send the stream to Learn
       const requestBody = {
         "nonce": params.getNonce(),
@@ -87,15 +91,45 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
         document.body.appendChild(form);
         form.submit();
       });
+    } else {
+      const requestBody = {
+        "nonce": params.getNonce(),
+        "assignment": {
+          id: assignment.id,
+          name: assignment.name,
+          submission: assignment.submission,
+          startDateTime: assignment.startDateTime,
+          endDateTime: assignment.endDateTime,
+          grade: assignment.grade
+        }
+      };
+
+      if (params.isStudent()) {
+        axios.post("/saveSubmission", requestBody, {}).then(response => {
+          console.log(`saveSubmission returned ${JSON.stringify(response)}`);
+        });
+      } else {
+        axios.post("/saveAssignment", requestBody, {}).then(response => {
+          console.log(`saveAssignment returned ${JSON.stringify(response)}`);
+        });
+      }
     }
   }
 
+  /*
   if (loading) {
     return (
         <div className="spinnerContainer">
           <Spinner size={SpinnerSize.large}/>
         </div>
     )
+  }
+
+   */
+
+  let submissionKey = 'ltiAdv.description';
+  if (params.isStudent()) {
+    submissionKey = 'ltiAdv.submission';
   }
 
   return (
@@ -114,16 +148,17 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
           <Stack>
             <div className="textfield-container">
               <StackItem grow>
+                <input type="hidden" name="assignmentId" value={assignment?.id}/>
                 <TextField
                     label={props.localize.translate('ltiAdv.name')}
                     value={assignment?.name}
                     analyticsId='ltiAdv.nameField'
-                    disabled={params.isStudent()}
+                    disabled={params.isDeepLinking()}
                     onChanged={onNameChanged}
                     errorMessage={undefined}
                 />
                 <TextField
-                    label={props.localize.translate('ltiAdv.submission')}
+                    label={props.localize.translate(submissionKey)}
                     value={assignment?.submission}
                     multiline
                     rows={10}
@@ -131,6 +166,7 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
                     onChanged={onSubmissionChanged}
                 />
                 <TextField
+                    className={params.isStudent() ? '' : 'hidden'}
                     label={props.localize.translate('ltiAdv.grade')}
                     value={assignment?.grade}
                     analyticsId='ltiAdv.gradeField'

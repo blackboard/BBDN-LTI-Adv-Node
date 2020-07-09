@@ -1,6 +1,8 @@
 ltiAdv:
   assignment: "Assignment"
   name: "Name"
+  description: "Description"
   submission: "Submission"
+  grade: "Grade"
   submit: "Submit"
   cancel: "Cancel"

@@ -16,6 +16,10 @@ h3 {
   padding: 0px 30px;
 }
 
+.hidden {
+  display: none;
+}
+
 .new-stream-button {
   margin-left: 30px;
 }
