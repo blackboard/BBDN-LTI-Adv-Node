@@ -1,0 +1,348 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f8f8f8;
+  color: #262626;
+  cursor: auto;
+  font-family: "Open Sans", sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+h3 {
+  font-size: 18px;
+  padding: 0px 30px;
+}
+
+.new-stream-button {
+  margin-left: 30px;
+}
+
+.meeting-valid-notice {
+  max-width: 40rem;
+  padding: 0px 2rem;
+}
+
+.ms-Label {
+  font-weight: 600;
+}
+
+.ms-Panel-titles-container {
+  padding: 0px 20px;
+}
+
+.desktop-only {
+  display: block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media only screen and (max-width: 40rem) {
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+}
+
+.textfield-container {
+  max-width: 40rem;
+}
+
+.textfield-container.description .ms-TextField .ms-TextField-fieldGroup {
+  min-height: 7rem;
+}
+
+.zero-state {
+  margin-top: 2rem;
+}
+
+.container.copy-link {
+  text-align: center;
+  max-width: 64rem;
+  margin: 0px auto;
+}
+
+.copy-link-instructions {
+  max-width: 24rem;
+  margin: 0px auto 0px;
+  font-size: 16px;
+}
+
+.copy-link-widget {
+  text-align: left;
+}
+
+.copy-link-controls {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ms-TextField.copy-link-textfield {
+  width: calc(100% - 9rem);
+  margin: 0px;
+}
+
+.copy-link-button {
+  width: 8rem;
+}
+
+.copy-link-button.post-copy {
+  background: #007D2C;
+}
+
+.microsoftLogo {
+  padding: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-around;
+  padding: 1rem;
+  border-bottom: 1px solid #cccccc6b;
+}
+
+.headerLogo {
+  margin-right: 1rem;
+  max-width: 32px;
+  width: 32px;
+}
+
+.headerIcon {
+  cursor: pointer;
+  margin-left: auto;
+  text-align: right;
+}
+
+.headerIcon span {
+  display: inherit;
+}
+
+.headerIcon i {
+  color: #3e3e3e;
+  position: relative;
+  top: 7px;
+}
+
+.container {
+  padding: 1rem 30px 2rem 30px;
+  width: 100%;
+}
+
+.teamsButton,
+.teamsButtonInverted {
+  border-radius: 3px;
+  height: 2.25rem;
+  font-size: .875rem;
+  font-weight: 600;
+  padding: 0 1.25rem;
+  text-decoration: none;
+}
+
+.teamsButton {
+  background-color: #6264a7;
+  border: 1px solid hsla(0,0%,100%,.04);
+  box-shadow: 1px 1px 3px 0 rgba(0,0,0,.15);
+}
+
+.teamsButton:hover {
+  background: #464775;
+  border-color: transparent;
+}
+
+.teamsButton:active {
+  background: #33344A;
+  border-color: transparent;
+}
+
+.teamsButtonInverted {
+  border: 1px solid #e3e5e9;
+  background-color: #fff;
+  box-shadow: 1px 1px 3px 0 rgba(0,0,0,.075);
+}
+
+.teamsButtonInverted:hover {
+  background-color: #f3f2f1;
+}
+
+.teamsButtonFullWidth {
+  width: 100%;
+}
+
+.splashImage {
+  max-width: 650px;
+  margin-top: 4.3rem;
+}
+
+.uTextCenter {
+  text-align: center;
+}
+
+div[class*="ms-TextField-wrapper"]:after {
+  border-bottom: 2px solid #6264a7;
+}
+
+/*
+*  New Meeting Styles
+*/
+
+.newMeetingContainer {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+div[class*="ms-ComboBox"]::after {
+  border: none; /* override fabric border */
+}
+
+.newMeetingDatePicker {
+  margin-right: 0.5rem;
+}
+
+.newMeetingDatePickerContainer > i {
+  margin-right: 1rem;
+}
+
+.newMeetingDatePicker i {
+  display: none; /* hides fabric date icon to match design */
+}
+
+.newMeetingComboBox {
+  flex: 0 0 30%;
+  margin-right: 1rem;
+}
+
+.newMeetingPicker > div {
+  margin-bottom: 0.8rem;
+}
+
+.newMeetingPickerIcon {
+  transform: rotate(180deg);
+  position: relative;
+  font-size: 1.1rem;
+  left: 15px;
+  top: -8px;
+}
+
+.newMeetingPickerIncrement {
+  position: relative;
+  left: 15px;
+  top: 7px;
+}
+
+@media (min-width: 600px) {
+  .newMeetingPicker {
+    display: flex;
+  }
+
+  .newMeetingComboBox {
+    flex: 1 1 auto;
+    max-width: 100px;
+  }
+
+  .newMeetingPickerIcon {
+    padding: 0 0.5rem;
+    left: auto;
+  }
+}
+
+.newMeetingButtons {
+  display: none;
+}
+
+.newMeetingButtonsMobile {
+  display: block;
+  padding: 0 1.5rem;
+}
+
+@media (min-width: 500px) {
+  .newMeetingButtons {
+    display: block;
+  }
+
+  .newMeetingButtonsMobile {
+    display: none;
+  }
+}
+
+/*
+*  Meeting Card Styles
+*/
+
+.meetingSuccess {
+  align-self: center;
+  display: flex;
+  margin-bottom: 1.5rem;
+  width: 50px;
+}
+
+.teamsLink {
+  color: #6264a7;
+}
+
+.meetingCardContainer {
+  display: flex;
+  box-shadow: 0px 9px 10px 1px #00000014;
+  flex-direction: column;
+  margin-top: 4.3rem;
+  padding: 2rem;
+}
+
+.meetingCardBody {
+  border: 1px solid #cccccc6b;
+  border-radius: 3px;
+  padding: 1.3rem 1rem;
+}
+
+.meetingCardHeader,
+.meetingCardSubHeader {
+  margin-bottom: 1.4rem;
+  text-align: center;
+}
+
+.meetingCardSubHeader {
+  line-height: 1.5;
+  max-width: 400px;
+}
+
+.meetingCardDialInfo,
+.meetingCardUrl {
+  margin-bottom: 1rem;
+  display: block;
+  font-size: 1rem;
+}
+
+.meetingCardConfID {
+  margin-bottom: 1rem;
+}
+
+.copyButton {
+  align-self: flex-end;
+  margin-top: 1.6rem;
+}
+
+/*
+* Spinner styling
+*/
+.spinnerContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+div[class*="ms-Spinner-circle"] {
+  border-color: #6264a7 #a7a8c7 #a7a8c7;
+}
+
+.ms-ComboBox-optionsContainerWrapper {
+  max-height: 300px;
+}

@@ -1,0 +1,14 @@
+{
+  "frontendUrl": "https://ltia.int.bbpd.io",
+  "serverPort": "3000",
+  "appKey": "12345",
+  "appSecret": "12345",
+  "bbClientId": "12345",
+  "issuer": "https://blackboard.com",
+  "jwksUrl": "https://developer.blackboard.com/api/v1/management/applications/12345/jwks.json",
+  "oauthTokenUrl": "https://developer.blackboard.com/api/v1/gateway/oauth2/jwttoken",
+  "oidcAuthUrl": "https://developer.blackboard.com/api/v1/gateway/oidcauth",
+  "redis_host": "localhost",
+  "redis_port": 6379,
+  "publicKeys": []
+}

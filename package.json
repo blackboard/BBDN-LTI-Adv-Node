@@ -1,0 +1,14 @@
+{
+  "name": "root",
+  "private": true,
+  "devDependencies": {
+    "lerna": "^3.20.2"
+  },
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "lerna run build",
+    "start": "yarn build:locales && yarn build && yarn start-nb",
+    "start-nb": "lerna run start --stream",
+    "build:locales": "gulp i18n && yaml2json locales --save --recursive"
+  }
+}

@@ -1,0 +1,4 @@
+googlemeet-lti:
+  build: .
+  ports:
+    - "9010:9010"
