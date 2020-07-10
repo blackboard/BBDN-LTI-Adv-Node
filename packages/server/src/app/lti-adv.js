@@ -183,7 +183,6 @@ exports.signJwt = function(json) {
   console.log(`config private key ${JSON.stringify(config.privateKey)}`);
   try {
     let privateKey = jwk2pem(config.privateKey);
-    console.log(`Private key: ${privateKey}`);
     const signedJwt = jwt.sign(json, privateKey, {algorithm: "RS256", keyid: "12345"});
     console.log(`signedJwt ${signedJwt}`);
     return signedJwt

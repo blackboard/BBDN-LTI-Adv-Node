@@ -2,10 +2,12 @@ import cookieParser from 'cookie-parser';
 import ltiAdv from './lti-adv';
 import assignmentService from './assignment-service';
 import deepLinkService from './deep-link-service';
+import userService from './user-service';
 import config from '../config/config';
 import axios from 'axios';
 import redisUtil from '../util/redisutil';
 import uuid from 'uuid';
+import ltiTokenService from "./lti-token-service";
 
 module.exports = function (app) {
   app.use(cookieParser());
@@ -64,6 +66,7 @@ module.exports = function (app) {
     const learnServer = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/tool_platform'].url;
     const lmsType = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/tool_platform'].product_family_code;
     const custom = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/custom'];
+    const nrpsUrl = jwtPayload.body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'].context_memberships_url + '&groups=true';
 
     const learnInfo = {
       userId: jwtPayload.body['sub'],
@@ -79,7 +82,8 @@ module.exports = function (app) {
       deployId: jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/deployment_id'],
       isStudent: isStudent,
       isDeepLinking: isDeepLinking,
-      resourceId: custom['resourceId']
+      resourceId: custom['resourceId'],
+      nrpsUrl: nrpsUrl
     };
 
     console.log('learnInfo: ' + JSON.stringify(learnInfo));
@@ -137,14 +141,25 @@ module.exports = function (app) {
       }
     };
 
-    console.log(`Getting bearer token at ${learnUrl}`);
+    console.log(`Getting REST bearer token at ${learnUrl}`);
     const response = await axios.post(learnUrl, 'grant_type=authorization_code', options);
     if (response.status === 200) {
       const token = response.data.access_token;
       console.log(`Got bearer token`);
 
       const nonce = uuid.v4();
-      redisUtil.redisSave(nonce, token);
+
+      // Cache the nonce
+      redisUtil.redisSave(nonce, 'nonce');
+
+      // Cache the REST token
+      redisUtil.redisSave(`${nonce}:rest`, token);
+
+      // Now get the LTI OAuth 2 bearer token (shame they aren't the same)
+      const ltiToken = await ltiTokenService.getLTIToken(config.bbClientId, config.oauthTokenUrl, 'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly');
+
+      // Cache the LTI token
+      redisUtil.redisSave(`${nonce}:lti`, ltiToken);
 
       // Now finally redirect to the IVS app
       res.redirect(`/?nonce=${nonce}&returnurl=${returnUrl}&cname=${courseName}&student=${isStudent}&dl=${isDeepLinking}&setLang=${learnLocale}#/viewAssignment`);
@@ -170,9 +185,9 @@ module.exports = function (app) {
     // 1. Protects against CSRF
     // 2. Is the key for our cached bearer token
     const nonce = body.nonce;
-    const token = await redisUtil.redisGet(nonce);
+    const token = await redisUtil.redisGet(`${nonce}:rest`);
     if (!token) {
-      console.log(`Couldn't get token for nonce ${nonce}...exiting.`);
+      console.log(`Couldn't get token for nonce ${nonce}:rest...exiting.`);
       res.status(404).send(`Couldn't find nonce`);
       return;
     }
@@ -192,11 +207,6 @@ module.exports = function (app) {
   });
 
   app.post('/saveAssignment', async (req, res) => {
-    let learnInfo = {};
-    if (req.cookies['learnInfo']) {
-      learnInfo = JSON.parse(req.cookies['learnInfo']);
-    }
-
     const assignment = req.body.assignment;
     console.log(`saveAssignment ${JSON.stringify(assignment)}`);
     const response = await assignmentService.saveAssignment(assignment.id, assignment);
@@ -226,6 +236,24 @@ module.exports = function (app) {
     const assignment = await assignmentService.loadAssignment(learnInfo.userId, learnInfo.resourceId, learnInfo.isStudent);
     console.log(`returning assignmentData ${JSON.stringify(assignment)}`)
     res.send(assignment);
+  })
+
+  app.get('/userData', async (req, res) => {
+    const nonce = req.query.nonce;
+
+    let learnInfo = {};
+    if (req.cookies['learnInfo']) {
+      learnInfo = JSON.parse(req.cookies['learnInfo']);
+    }
+    console.log(`userData for ${learnInfo.courseId} and nonce ${nonce}`);
+
+    const token = await ltiTokenService.getCachedLTIToken(nonce);
+
+    if (!token) return [];
+
+    const users = await userService.loadUsers(learnInfo.courseId, learnInfo.nrpsUrl, token);
+    console.log(`returning users ${JSON.stringify(users)}`)
+    res.send(users);
   })
 
   //=======================================================

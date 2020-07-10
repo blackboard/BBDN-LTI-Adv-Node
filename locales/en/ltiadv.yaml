@@ -6,3 +6,6 @@ ltiAdv:
   grade: "Grade"
   submit: "Submit"
   cancel: "Cancel"
+  userName: "User name"
+  userEmail: "Email"
+  userGrade: "Grade"

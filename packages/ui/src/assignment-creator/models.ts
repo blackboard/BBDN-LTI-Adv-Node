@@ -1,6 +1,13 @@
 import moment from "moment";
 import {Moment} from "moment";
 
+export interface IUser {
+  id: string,
+  name?: string,
+  email?: string,
+  grade?: string
+}
+
 export interface AssignmentInput {
   id?: string,
   name: string,

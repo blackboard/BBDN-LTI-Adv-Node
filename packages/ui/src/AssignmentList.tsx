@@ -1,10 +1,12 @@
 import React, {useState, useEffect} from 'react';
 import _ from 'lodash';
+import {localizedComponentWrapper} from 'react-babelfish';
 import {
   Stack, StackItem, Spinner, SpinnerSize
 } from 'office-ui-fabric-react';
-import {localizedComponentWrapper} from 'react-babelfish';
-import {AssignmentInput, createDefaultAssignmentInput} from './assignment-creator/models';
+import {ISortableTableHeader, SortableTable, SortDirection} from '@bb-ui-toolkit/toolkit-react/lib/SortableTable';
+import {ISortableTableRow} from "@bb-ui-toolkit/toolkit-react";
+import {AssignmentInput, IUser, createDefaultAssignmentInput} from './assignment-creator/models';
 import {parameters} from './util/parameters';
 
 import {BbPanelHeader, BbPanelType, BbPanelFooter} from '@bb-ui-toolkit/toolkit-react/lib/BbPanel';
@@ -21,6 +23,9 @@ const params = parameters.getInstance();
 function ViewAssignmentPageComponent(props: AssignmentPageProps) {
   const [assignment, setAssignment] = useState<AssignmentInput>(createDefaultAssignmentInput());
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<IUser[]>([]);
+  const [rows, setRows] = useState<ISortableTableRow[]>([]);
+
   useEffect(() => {
     fetch('/assignmentData').then(response => response.json()).then(data => {
       console.log(`assignmentData returned is ${JSON.stringify(data)}`);
@@ -28,6 +33,12 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
         setAssignment(data);
       }
       setLoading(false);
+    });
+
+    fetch(`userData?nonce=${params.getNonce()}`).then(response => response.json()).then(data => {
+      console.log(`userData returned is ${JSON.stringify(data)}`);
+      setUserData(data);
+      buildRows(data);
     });
   }, []);
 
@@ -76,9 +87,7 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
       };
 
       axios.post("/sendAssignment", requestBody, {
-        headers: {
-          'Content-type': 'application/json'
-        }
+        headers: xhrHeaders
       }).then(response => {
         // The LTI Deep Linking spec requires a form POST back to the Platform
         const form = document.createElement('form');
@@ -132,6 +141,50 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
     submissionKey = 'ltiAdv.submission';
   }
 
+  function buildRows(data: IUser[]){
+    const rows = data.map((user: IUser) => {
+      return {
+        key: user.id,
+        cells: [
+          <span>{user.name}</span>,
+          <span>{user.email}</span>,
+          <span>{user.grade}</span>
+        ]
+      };
+    });
+    setRows(rows)
+    setUserData(data)
+  }
+
+  function handleNameSort(sortDirection: SortDirection) {
+    const dataCopy = userData;
+    dataCopy.sort((showA, showB) => {
+      const aName = showA.name ?? '';
+      const bName = showB.name ?? ''
+      return sortDirection === SortDirection.Ascending ? aName.localeCompare(bName) : bName?.localeCompare(aName);
+    });
+    buildRows(dataCopy)
+  }
+
+  const headers: ISortableTableHeader[] = [
+    {
+      key: 'name',
+      name: props.localize.translate('ltiAdv.userName'),
+      width: 100,
+      onSort: handleNameSort
+    },
+    {
+      key: 'email',
+      name: props.localize.translate('ltiAdv.userEmail'),
+      width: 200,
+    },
+    {
+      key: 'grade',
+      name: props.localize.translate('ltiAdv.userGrade'),
+      width: 200,
+    }
+]
+
   return (
       <div className="streamListContainer">
         <BbPanelHeader
@@ -153,7 +206,7 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
                     label={props.localize.translate('ltiAdv.name')}
                     value={assignment?.name}
                     analyticsId='ltiAdv.nameField'
-                    disabled={params.isDeepLinking()}
+                    disabled={params.isStudent()}
                     onChanged={onNameChanged}
                     errorMessage={undefined}
                 />
@@ -172,6 +225,17 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
                     analyticsId='ltiAdv.gradeField'
                     onChanged={onGradeChanged}
                     errorMessage={undefined}
+                />
+              </StackItem>
+            </div>
+            <div className={params.isStudent() ? 'hidden' : ''}>
+              <StackItem grow>
+                <SortableTable
+                    useGrayHeader={true}
+                    headers={ headers }
+                    rows={ rows }
+                    tableName={ props.localize.translate('ltiAdv.tableName') }
+                    analyticsId='ltiAdv.userTable'
                 />
               </StackItem>
             </div>

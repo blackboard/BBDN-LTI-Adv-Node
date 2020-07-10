@@ -4,7 +4,6 @@
   "private": true,
   "dependencies": {
     "@lti-adv-test/ui": "0.1.0",
-    "aws4": "^1.10.0",
     "axios": "0.19.2",
     "cookie-parser": "^1.4.5",
     "ejs": "^3.0.1",
@@ -15,6 +14,7 @@
     "moment-timezone": "0.5.28",
     "office-ui-fabric-react": "7.103.0",
     "pem-jwk": "^2.0.0",
+    "qs": "^6.9.4",
     "redis": "^3.0.2",
     "sync-request": "^6.1.0",
     "typescript": "^3.8.3",
