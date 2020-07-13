@@ -15,24 +15,17 @@ exports.createDeepContent = async (assignment, learnInfo, token) => {
   };
 
   // First we need to get what type of course we've got
-  const courseResponse = await axios.get(`${learnInfo.learnHost}/learn/api/public/v2/courses/uuid:${learnInfo.courseUUID}`, xhrConfig);
+  try {
+    const courseResponse = await axios.get(`${learnInfo.learnHost}/learn/api/public/v2/courses/uuid:${learnInfo.courseUUID}`, xhrConfig);
 
-  if (courseResponse.status === 200) {
-    try {
-      console.log(`Got course; Ultra status is ${courseResponse.data.ultraStatus}, and PK1 is: ${courseResponse.data.id}`);
+    console.log(`Got course; Ultra status is ${courseResponse.data.ultraStatus}, and PK1 is: ${courseResponse.data.id}`);
 
-      // TODO??? createCalendarItem(assignment, learnInfo, courseResponse.data.id, xhrConfig);
+    // TODO??? createCalendarItem(assignment, learnInfo, courseResponse.data.id, xhrConfig);
 
-      // Now create the deep linking response
-      return createDeepLinkJwt(assignment, learnInfo);
-    } catch (error) {
-      console.log(`Error creating calendar or content ${JSON.stringify(error)}`);
-      return null;
-    }
-  } else {
-    // get course info failed
-    console.log(`Get course info failed ${JSON.stringify(courseResponse)}`);
-    return null;
+    // Now create the deep linking response
+    return createDeepLinkJwt(assignment, learnInfo);
+  } catch (exception) {
+    console.log(`Error getting course info ${JSON.stringify(exception)}`);
   }
 };
 
@@ -76,7 +69,9 @@ let createDeepLinkJwt = function (assignment, learnInfo) {
     text: assignment.submission,
     url: `${config.frontendUrl}/lti13`,
     available: {
-      startDateTime: assignment.startDateTime,
+      endDateTime: assignment.endDateTime,
+    },
+    submission: {
       endDateTime: assignment.endDateTime,
     },
     iframe: {

@@ -18,10 +18,16 @@ const oauth2JWT = (clientId, tokenUrl) => {
   return ltiAdv.signJwt(json);
 };
 
-exports.getCachedLTIToken = async (nonce) => {
-  const token = await redisUtil.redisGet(`${nonce}:lti`);
+exports.cacheToken = async (token, nonce) => {
+  redisUtil.redisSave(`${nonce}:lti`, token);
+}
+
+exports.getCachedLTIToken = async (nonce, clientId, tokenUrl, scope) => {
+  let token = await redisUtil.redisGet(`${nonce}:lti`);
   if (!token) {
-    console.log(`Couldn't get token for nonce ${nonce}.`);
+    console.log(`Couldn't get cached token for nonce ${nonce}.`);
+
+    token = getLTIToken(clientId, tokenUrl, scope);
   }
 
   return token;

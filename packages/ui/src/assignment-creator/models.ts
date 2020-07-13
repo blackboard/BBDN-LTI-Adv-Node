@@ -1,5 +1,4 @@
-import moment from "moment";
-import {Moment} from "moment";
+import moment from 'moment';
 
 export interface IUser {
   id: string,
@@ -12,8 +11,8 @@ export interface AssignmentInput {
   id?: string,
   name: string,
   submission?: string,
-  startDateTime: Moment,
-  endDateTime: Moment,
+  startDateTime: moment.Moment,
+  endDateTime: moment.Moment,
   grade?: string
 }
 

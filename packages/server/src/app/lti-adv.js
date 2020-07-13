@@ -180,7 +180,6 @@ exports.oidcLogin = function(req, res) {
 };
 
 exports.signJwt = function(json) {
-  console.log(`config private key ${JSON.stringify(config.privateKey)}`);
   try {
     let privateKey = jwk2pem(config.privateKey);
     const signedJwt = jwt.sign(json, privateKey, {algorithm: "RS256", keyid: "12345"});

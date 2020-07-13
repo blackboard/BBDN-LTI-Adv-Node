@@ -1,4 +1,5 @@
 import redisUtil from '../util/redisutil';
+import gradeService from './grade-service';
 
 exports.loadAssignment = async (userId, resourceId, isStudent) => {
   if (!resourceId) {
@@ -40,11 +41,13 @@ exports.saveAssignment = async (resourceId, assignment) => {
   redisUtil.redisSave(resourceId, assignment);
 }
 
-exports.saveSubmission = async (studentId, resourceId, assignment) => {
+exports.saveSubmission = async (courseId, studentId, resourceId, assignment, url, token) => {
   const submission = {
     text: assignment.submission,
     grade: assignment.grade
   }
   console.log(`saveSubmission ${JSON.stringify(assignment)}`);
   redisUtil.redisSave(`${resourceId}:${studentId}`, submission);
+
+  await gradeService.sendGrade(courseId, studentId, submission.grade, url, token);
 }

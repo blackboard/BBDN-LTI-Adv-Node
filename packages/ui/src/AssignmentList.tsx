@@ -181,7 +181,7 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
     {
       key: 'grade',
       name: props.localize.translate('ltiAdv.userGrade'),
-      width: 200,
+      width: 50,
     }
 ]
 

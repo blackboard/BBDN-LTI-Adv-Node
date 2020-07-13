@@ -2,6 +2,7 @@ import cookieParser from 'cookie-parser';
 import ltiAdv from './lti-adv';
 import assignmentService from './assignment-service';
 import deepLinkService from './deep-link-service';
+import gradeService from './grade-service';
 import userService from './user-service';
 import config from '../config/config';
 import axios from 'axios';
@@ -11,6 +12,12 @@ import ltiTokenService from "./lti-token-service";
 
 module.exports = function (app) {
   app.use(cookieParser());
+
+  const scopes = 'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly ' +
+    'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem ' +
+    'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly ' +
+    'https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly ' +
+    'https://purl.imsglobal.org/spec/lti-ags/scope/score';
 
   //=======================================================
   // LTI Advantage Message processing
@@ -67,6 +74,7 @@ module.exports = function (app) {
     const lmsType = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/tool_platform'].product_family_code;
     const custom = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/custom'];
     const nrpsUrl = jwtPayload.body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'].context_memberships_url + '&groups=true';
+    const agsUrl = jwtPayload.body['https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'].lineitem;
 
     const learnInfo = {
       userId: jwtPayload.body['sub'],
@@ -83,7 +91,8 @@ module.exports = function (app) {
       isStudent: isStudent,
       isDeepLinking: isDeepLinking,
       resourceId: custom['resourceId'],
-      nrpsUrl: nrpsUrl
+      nrpsUrl: nrpsUrl,
+      agsUrl: agsUrl
     };
 
     console.log('learnInfo: ' + JSON.stringify(learnInfo));
@@ -142,8 +151,8 @@ module.exports = function (app) {
     };
 
     console.log(`Getting REST bearer token at ${learnUrl}`);
-    const response = await axios.post(learnUrl, 'grant_type=authorization_code', options);
-    if (response.status === 200) {
+    try {
+      const response = await axios.post(learnUrl, 'grant_type=authorization_code', options);
       const token = response.data.access_token;
       console.log(`Got bearer token`);
 
@@ -156,16 +165,16 @@ module.exports = function (app) {
       redisUtil.redisSave(`${nonce}:rest`, token);
 
       // Now get the LTI OAuth 2 bearer token (shame they aren't the same)
-      const ltiToken = await ltiTokenService.getLTIToken(config.bbClientId, config.oauthTokenUrl, 'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly');
+      const ltiToken = await ltiTokenService.getLTIToken(config.bbClientId, config.oauthTokenUrl, scopes);
 
       // Cache the LTI token
-      redisUtil.redisSave(`${nonce}:lti`, ltiToken);
+      await ltiTokenService.cacheToken(ltiToken, nonce);
 
       // Now finally redirect to the IVS app
       res.redirect(`/?nonce=${nonce}&returnurl=${returnUrl}&cname=${courseName}&student=${isStudent}&dl=${isDeepLinking}&setLang=${learnLocale}#/viewAssignment`);
-    } else {
-      console.log(`Failed to get token with response ${response.status}`);
-      res.send(`An error occurred getting OAuth2 token ${response.status}`);
+    } catch (exception) {
+      console.log(`Failed to get token with response ${JSON.stringify(exception)}`);
+      res.send(`An error occurred getting OAuth2 token`);
     }
   });
 
@@ -214,6 +223,7 @@ module.exports = function (app) {
   });
 
   app.post('/saveSubmission', async (req, res) => {
+    const nonce = req.body.nonce;
     let learnInfo = {};
     if (req.cookies['learnInfo']) {
       learnInfo = JSON.parse(req.cookies['learnInfo']);
@@ -222,7 +232,13 @@ module.exports = function (app) {
     console.log(`saveSubmission for ${learnInfo.userId}`);
     const assignment = req.body.assignment;
     console.log(`saveSubmission ${JSON.stringify(assignment)}`);
-    const response = await assignmentService.saveSubmission(learnInfo.userId, assignment.id, assignment);
+    const token = await ltiTokenService.getCachedLTIToken(nonce, config.bbClientId, config.oauthTokenUrl, scopes);
+
+    if (!token) {
+      console.log(`saveSubmission no token`);
+      res.status(404).send(`Couldn't find LTI token to send grade`);
+    }
+    const response = await assignmentService.saveSubmission(learnInfo.courseId, learnInfo.userId, assignment.id, assignment, learnInfo.agsUrl, token);
     res.send(response);
   });
 
@@ -236,7 +252,7 @@ module.exports = function (app) {
     const assignment = await assignmentService.loadAssignment(learnInfo.userId, learnInfo.resourceId, learnInfo.isStudent);
     console.log(`returning assignmentData ${JSON.stringify(assignment)}`)
     res.send(assignment);
-  })
+  });
 
   app.get('/userData', async (req, res) => {
     const nonce = req.query.nonce;
@@ -247,14 +263,34 @@ module.exports = function (app) {
     }
     console.log(`userData for ${learnInfo.courseId} and nonce ${nonce}`);
 
-    const token = await ltiTokenService.getCachedLTIToken(nonce);
+    const token = await ltiTokenService.getCachedLTIToken(nonce, config.bbClientId, config.oauthTokenUrl, scopes);
 
     if (!token) return [];
 
-    const users = await userService.loadUsers(learnInfo.courseId, learnInfo.nrpsUrl, token);
+    const users = await userService.loadUsers(learnInfo.courseId, learnInfo.resourceId, learnInfo.nrpsUrl, token);
     console.log(`returning users ${JSON.stringify(users)}`)
     res.send(users);
-  })
+  });
+
+  app.post('/sendGrade', async (req, res) => {
+    const nonce = req.query.nonce;
+
+    let learnInfo = {};
+    if (req.cookies['learnInfo']) {
+      learnInfo = JSON.parse(req.cookies['learnInfo']);
+    }
+    console.log(`sendGrade for ${learnInfo.courseId} and nonce ${nonce}`);
+
+    const token = await ltiTokenService.getCachedLTIToken(nonce);
+
+    if (!token) {
+      res.status(404).send(`Couldn't find LTI token to send grade`);
+    }
+
+    const grade = await gradeService.sendGrade(learnInfo.courseId, learnInfo.userId, req.body.gradeInfo, learnInfo.agsUrl, token);
+    console.log(`sent grade ${JSON.stringify(grade)}`)
+    res.send(grade);
+  });
 
   //=======================================================
   // Catch all

@@ -7,7 +7,7 @@ import { ConnectedRouter, routerMiddleware } from 'connected-react-router'
 import { createRootReducer } from './RootReducer'
 import ErrorPage from './ErrorPage';
 import { localizedComponentWrapper } from 'react-babelfish';
-import moment from 'moment';
+import * as moment from 'moment';
 import 'moment/min/locales.min';
 import { initializeIcons } from 'office-ui-fabric-react';
 import { parameters } from './util/parameters';
