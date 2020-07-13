@@ -10,17 +10,8 @@ exports.createDeepContent = async (assignment, learnInfo, token) => {
   console.log(`createDeepContent assignment: ${JSON.stringify(assignment)}`);
   console.log(`createDeepContent learn: ${JSON.stringify(learnInfo)}`);
 
-  const xhrConfig = {
-    headers: {Authorization: `Bearer ${token}`}
-  };
-
-  // First we need to get what type of course we've got
   try {
-    const courseResponse = await axios.get(`${learnInfo.learnHost}/learn/api/public/v2/courses/uuid:${learnInfo.courseUUID}`, xhrConfig);
-
-    console.log(`Got course; Ultra status is ${courseResponse.data.ultraStatus}, and PK1 is: ${courseResponse.data.id}`);
-
-    // TODO??? createCalendarItem(assignment, learnInfo, courseResponse.data.id, xhrConfig);
+    await createCalendarItem(assignment, learnInfo, token);
 
     // Now create the deep linking response
     return createDeepLinkJwt(assignment, learnInfo);
@@ -29,35 +20,41 @@ exports.createDeepContent = async (assignment, learnInfo, token) => {
   }
 };
 
-let createCalendarItem = async function (meetingInfo, learnInfo, calendarId, xhrConfig) {
-  // We need the course PK1 for the Calendar API
-  const calendarOptions = {
-    calendarId: calendarId,
-    type: 'Course',
-    title: meetingInfo.subject,
-    location: meetingInfo.description,
-    description: meetingInfo.description,
-    start: meetingInfo.startDateTime,
-    end: meetingInfo.endDateTime
+const createCalendarItem = async (assignment, learnInfo, token) => {
+  const xhrConfig = {
+    headers: {Authorization: `Bearer ${token}`}
   };
 
-  console.log(`Calendar create options: ${JSON.stringify(calendarOptions)}`);
+  try {
+    // First we need to get what type of course we've got so we can get the calendar ID
+    const courseResponse = await axios.get(`${learnInfo.learnHost}/learn/api/public/v2/courses/uuid:${learnInfo.courseUUID}`, xhrConfig);
 
-  const learnUrl = `${learnInfo.learnHost}/learn/api/public/v1/calendars/items`;
+    console.log(`Got course; Ultra status is ${courseResponse.data.ultraStatus}, and PK1 is: ${courseResponse.data.id}`);
 
-  // Create the calendar item
-  axios.post(learnUrl, calendarOptions, xhrConfig).then(response => {
-    if (response.status === 201) {
-      console.log(`Calendar item created successfully!`);
-    } else {
-      console.log(`Calendar item creation failed ${response.status}`);
-    }
-  }).catch(error => {
-    console.log(`Error creating calendar item: ${JSON.stringify(error?.response?.data)}, from: ${learnInfo.learnHost}`);
-  });
+    // We need the course PK1 for the Calendar API
+    const calendarOptions = {
+      calendarId: courseResponse.data.id,
+      type: 'Course',
+      title: assignment.name,
+      location: assignment.submission,
+      description: assignment.submission,
+      start: moment().startOf('hour').add(1, 'hour').toISOString(),
+      end: moment().startOf('hour').add(2, 'hour').toISOString()
+    };
+
+    console.log(`Calendar create options: ${JSON.stringify(calendarOptions)}`);
+
+    const learnUrl = `${learnInfo.learnHost}/learn/api/public/v1/calendars/items`;
+
+    // Create the calendar item
+    const response = await axios.post(learnUrl, calendarOptions, xhrConfig);
+    console.log(`Created calendar item!!! ${JSON.stringify(response.data)}`);
+  } catch (exception) {
+    console.log(`Error creating calendar item: ${JSON.stringify(exception)}, from: ${learnInfo.learnHost}`);
+  }
 };
 
-let createDeepLinkJwt = function (assignment, learnInfo) {
+const createDeepLinkJwt = function (assignment, learnInfo) {
   const assignmentId = uuid.v4();
 
   // Save this assignment

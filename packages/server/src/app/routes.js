@@ -1,18 +1,20 @@
 import cookieParser from 'cookie-parser';
+import uuid from 'uuid';
 import ltiAdv from './lti-adv';
 import assignmentService from './assignment-service';
 import deepLinkService from './deep-link-service';
 import gradeService from './grade-service';
 import userService from './user-service';
 import config from '../config/config';
-import axios from 'axios';
 import redisUtil from '../util/redisutil';
-import uuid from 'uuid';
-import ltiTokenService from "./lti-token-service";
+import ltiTokenService from './lti-token-service';
+import restService from './rest-service';
 
 module.exports = function (app) {
   app.use(cookieParser());
 
+  const LEARN_INFO_KEY = 'learnInfo';
+  
   const scopes = 'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly ' +
     'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem ' +
     'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly ' +
@@ -96,7 +98,11 @@ module.exports = function (app) {
     };
 
     console.log('learnInfo: ' + JSON.stringify(learnInfo));
-    res.cookie('learnInfo', JSON.stringify(learnInfo), {sameSite: 'none', secure: true, httpOnly: true});
+    const learnInfoKey = uuid.v4();
+    ltiAdv.cacheLearnInfo(learnInfoKey, learnInfo);
+    res.cookie(LEARN_INFO_KEY, learnInfoKey); // Store our learn info key in a cookie so we can get the data back later
+
+    // TODO remove res.cookie('learnInfo', JSON.stringify(learnInfo), {sameSite: 'none', secure: true, httpOnly: true});
 
     // At this point we want to get the 3LO auth code, and then OAuth2 bearer token, and THEN we can send the user
     // to the MS Teams Meeting app UI.
@@ -124,58 +130,34 @@ module.exports = function (app) {
     let isStudent = true;
     let isDeepLinking = false;
     let learnLocale = 'en-us';
-    const learnInfo = req.cookies['learnInfo'];
+    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
 
     if (learnInfo) {
-      const learn = JSON.parse(learnInfo)
-      learnHost = learn.learnHost;
-      returnUrl = learn.returnUrl;
-      courseName = encodeURIComponent(learn.courseName);
-      learnLocale = learn.locale;
-      isStudent = learn.isStudent;
-      isDeepLinking = learn.isDeepLinking;
+      learnHost = learnInfo.learnHost;
+      returnUrl = learnInfo.returnUrl;
+      courseName = encodeURIComponent(learnInfo.courseName);
+      learnLocale = learnInfo.locale;
+      isStudent = learnInfo.isStudent;
+      isDeepLinking = learnInfo.isDeepLinking;
     }
 
     const redirectUri = `${config.frontendUrl}/tlocode`;
     const learnUrl = learnHost + `/learn/api/public/v1/oauth2/token?code=${req.query.code}&redirect_uri=${redirectUri}`;
 
-    // If we have a code, let's get us a bearer token here.
-    const auth_hash = new Buffer.from(`${config.appKey}:${config.appSecret}`).toString('base64');
-    const auth_string = `Basic ${auth_hash}`;
-    console.log(`Auth string: ${auth_string}`);
-    const options = {
-      headers: {
-        Authorization: auth_string,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    };
+    // If we have a 3LO auth code, let's get us a bearer token here.
+    const nonce = uuid.v4();
 
-    console.log(`Getting REST bearer token at ${learnUrl}`);
-    try {
-      const response = await axios.post(learnUrl, 'grant_type=authorization_code', options);
-      const token = response.data.access_token;
-      console.log(`Got bearer token`);
+    const restToken = restService.getLearnRestToken(learnUrl, nonce);
+    console.log(`Learn REST token ${restToken}`);
 
-      const nonce = uuid.v4();
+    // Now get the LTI OAuth 2 bearer token (shame they aren't the same)
+    const ltiToken = await ltiTokenService.getLTIToken(config.bbClientId, config.oauthTokenUrl, scopes);
 
-      // Cache the nonce
-      redisUtil.redisSave(nonce, 'nonce');
+    // Cache the LTI token
+    await ltiTokenService.cacheToken(ltiToken, nonce);
 
-      // Cache the REST token
-      redisUtil.redisSave(`${nonce}:rest`, token);
-
-      // Now get the LTI OAuth 2 bearer token (shame they aren't the same)
-      const ltiToken = await ltiTokenService.getLTIToken(config.bbClientId, config.oauthTokenUrl, scopes);
-
-      // Cache the LTI token
-      await ltiTokenService.cacheToken(ltiToken, nonce);
-
-      // Now finally redirect to the IVS app
-      res.redirect(`/?nonce=${nonce}&returnurl=${returnUrl}&cname=${courseName}&student=${isStudent}&dl=${isDeepLinking}&setLang=${learnLocale}#/viewAssignment`);
-    } catch (exception) {
-      console.log(`Failed to get token with response ${JSON.stringify(exception)}`);
-      res.send(`An error occurred getting OAuth2 token`);
-    }
+    // Now finally redirect to the IVS app
+    res.redirect(`/?nonce=${nonce}&returnurl=${returnUrl}&cname=${courseName}&student=${isStudent}&dl=${isDeepLinking}&setLang=${learnLocale}#/viewAssignment`);
   });
 
   app.get('/jwtPayloadData', (req, res) => {
@@ -192,25 +174,24 @@ module.exports = function (app) {
 
     // Get the OAuth2 bearer token from our cache based on the nonce. The nonce serves two purposes:
     // 1. Protects against CSRF
-    // 2. Is the key for our cached bearer token
+    // 2. Is the key for our cached bearer tokens
     const nonce = body.nonce;
-    const token = await redisUtil.redisGet(`${nonce}:rest`);
-    if (!token) {
-      console.log(`Couldn't get token for nonce ${nonce}:rest...exiting.`);
-      res.status(404).send(`Couldn't find nonce`);
-      return;
+    const cachedNonce = await redisUtil.redisGet(nonce);
+
+    if (!cachedNonce) {
+      console.log(`Couldn't find nonce...exiting`);
+      res.send('Could not find nonce');
     }
-    console.log(`sendAssignment got bearer token`);
 
     // Remove the nonce so it can't be replayed
     redisUtil.redisDelete(nonce);
 
-    let learnInfo = {};
-    if (req.cookies['learnInfo']) {
-      learnInfo = JSON.parse(req.cookies['learnInfo']);
-    }
+    const restToken = await restService.getCachedToken(nonce);
+    console.log(`sendAssignment got bearer token ${restToken}`);
 
-    const deepLinkReturn = await deepLinkService.createDeepContent(body.assignment, learnInfo, token);
+    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
+
+    const deepLinkReturn = await deepLinkService.createDeepContent(body.assignment, learnInfo, restToken);
     console.log(`sendAssignment got deep link return ${JSON.stringify(deepLinkReturn)}`);
     res.send(deepLinkReturn);
   });
@@ -224,10 +205,7 @@ module.exports = function (app) {
 
   app.post('/saveSubmission', async (req, res) => {
     const nonce = req.body.nonce;
-    let learnInfo = {};
-    if (req.cookies['learnInfo']) {
-      learnInfo = JSON.parse(req.cookies['learnInfo']);
-    }
+    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
 
     console.log(`saveSubmission for ${learnInfo.userId}`);
     const assignment = req.body.assignment;
@@ -243,10 +221,7 @@ module.exports = function (app) {
   });
 
   app.get('/assignmentData', async (req, res) => {
-    let learnInfo = {};
-    if (req.cookies['learnInfo']) {
-      learnInfo = JSON.parse(req.cookies['learnInfo']);
-    }
+    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
 
     console.log(`assignmentData for ${learnInfo.courseId}`)
     const assignment = await assignmentService.loadAssignment(learnInfo.userId, learnInfo.resourceId, learnInfo.isStudent);
@@ -257,10 +232,7 @@ module.exports = function (app) {
   app.get('/userData', async (req, res) => {
     const nonce = req.query.nonce;
 
-    let learnInfo = {};
-    if (req.cookies['learnInfo']) {
-      learnInfo = JSON.parse(req.cookies['learnInfo']);
-    }
+    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
     console.log(`userData for ${learnInfo.courseId} and nonce ${nonce}`);
 
     const token = await ltiTokenService.getCachedLTIToken(nonce, config.bbClientId, config.oauthTokenUrl, scopes);
@@ -275,10 +247,7 @@ module.exports = function (app) {
   app.post('/sendGrade', async (req, res) => {
     const nonce = req.query.nonce;
 
-    let learnInfo = {};
-    if (req.cookies['learnInfo']) {
-      learnInfo = JSON.parse(req.cookies['learnInfo']);
-    }
+    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
     console.log(`sendGrade for ${learnInfo.courseId} and nonce ${nonce}`);
 
     const token = await ltiTokenService.getCachedLTIToken(nonce);
