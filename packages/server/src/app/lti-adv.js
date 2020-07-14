@@ -18,7 +18,7 @@ exports.getLearnInfo = async (key) => {
   console.log(`Getting learnInfo with key ${key}`);
   const learnInfo = await redisUtil.redisGet(key);
   console.log(`returning learnInfo for ${key} ${JSON.stringify(learnInfo)}`);
-  return learnInfo;
+  return learnInfo ?? {};
 };
 
 exports.toolLaunch = function(req, res, jwtPayload) {

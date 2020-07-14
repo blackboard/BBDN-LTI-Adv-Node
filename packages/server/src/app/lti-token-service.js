@@ -18,22 +18,7 @@ const oauth2JWT = (clientId, tokenUrl) => {
   return ltiAdv.signJwt(json);
 };
 
-exports.cacheToken = async (token, nonce) => {
-  redisUtil.redisSave(`${nonce}:lti`, token);
-}
-
-exports.getCachedLTIToken = async (nonce, clientId, tokenUrl, scope) => {
-  let token = await redisUtil.redisGet(`${nonce}:lti`);
-  if (!token) {
-    console.log(`Couldn't get cached token for nonce ${nonce}.`);
-
-    token = getLTIToken(clientId, tokenUrl, scope);
-  }
-
-  return token;
-}
-
-exports.getLTIToken = async (clientId, tokenUrl, scope) => {
+exports.getLTIToken = async (clientId, tokenUrl, scope, nonce) => {
   console.log(`getLTIToken client ${clientId} tokenUrl: ${tokenUrl} scope: ${scope}`);
   const clientAssertion = oauth2JWT(clientId, tokenUrl);
 
@@ -56,10 +41,29 @@ exports.getLTIToken = async (clientId, tokenUrl, scope) => {
   try {
     const response = await axios.post(tokenUrl, qs.stringify(body), options);
     const token = response.data.access_token;
-    console.log(`getLTIToken ${token}`);
+    console.log(`getLTIToken token ${token}`);
+
+    // Cache the LTI token
+    cacheToken(token, nonce);
 
     return token;
   } catch (exception) {
     console.log(`getLTIToken exception ${JSON.stringify(exception)}`);
   }
-}
+};
+
+exports.getCachedLTIToken = async (nonce, clientId, tokenUrl, scope) => {
+  let token = await redisUtil.redisGet(`${nonce}:lti`);
+  if (!token) {
+    console.log(`Couldn't get cached token for nonce ${nonce}.`);
+
+    token = await getLTIToken(clientId, tokenUrl, scope, nonce);
+  }
+
+  return token;
+};
+
+const cacheToken = (token, nonce) => {
+  console.log(`cacheToken token ${token} nonce ${nonce}`);
+  redisUtil.redisSave(`${nonce}:lti`, token);
+};

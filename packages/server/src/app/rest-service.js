@@ -19,9 +19,6 @@ exports.getLearnRestToken = async (learnUrl, nonce) => {
     const token = response.data.access_token;
     console.log(`Got bearer token`);
 
-    // Cache the nonce
-    redisUtil.redisSave(nonce, 'nonce');
-
     // Cache the REST token
     redisUtil.redisSave(`${nonce}:rest`, token);
     return token;

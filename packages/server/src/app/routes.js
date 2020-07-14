@@ -147,16 +147,17 @@ module.exports = function (app) {
     // If we have a 3LO auth code, let's get us a bearer token here.
     const nonce = uuid.v4();
 
+    // Cache the nonce
+    redisUtil.redisSave(nonce, 'nonce');
+
     const restToken = restService.getLearnRestToken(learnUrl, nonce);
     console.log(`Learn REST token ${restToken}`);
 
     // Now get the LTI OAuth 2 bearer token (shame they aren't the same)
-    const ltiToken = await ltiTokenService.getLTIToken(config.bbClientId, config.oauthTokenUrl, scopes);
+    const ltiToken = await ltiTokenService.getLTIToken(config.bbClientId, config.oauthTokenUrl, scopes, nonce);
+    console.log(`Learn LTI token ${ltiToken}`);
 
-    // Cache the LTI token
-    await ltiTokenService.cacheToken(ltiToken, nonce);
-
-    // Now finally redirect to the IVS app
+    // Now finally redirect to the UI
     res.redirect(`/?nonce=${nonce}&returnurl=${returnUrl}&cname=${courseName}&student=${isStudent}&dl=${isDeepLinking}&setLang=${learnLocale}#/viewAssignment`);
   });
 
