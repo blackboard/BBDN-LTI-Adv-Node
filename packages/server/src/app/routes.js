@@ -30,7 +30,7 @@ module.exports = function (app) {
     ltiAdv.oidcLogin(req, res);
   });
 
-  app.post('/lti13', (req, res) => {
+  app.post('/lti13', async (req, res) => {
     console.log('--------------------\nlti13');
 
     // Per the OIDC best practices, ensure the state parameter passed in here matches the one in our cookie
@@ -40,7 +40,7 @@ module.exports = function (app) {
       return;
     }
 
-    jwtPayload = ltiAdv.verifyToken(req.body.id_token);
+    jwtPayload = await ltiAdv.verifyToken(req.body.id_token);
     if (!jwtPayload || !jwtPayload.verified) {
       res.send('An error occurred processing the id_token.');
       return;

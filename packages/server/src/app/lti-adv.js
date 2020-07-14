@@ -1,13 +1,12 @@
 'use strict';
+import axios from 'axios';
 import config from '../config/config';
 import {JWTPayload} from '../common/restTypes';
 import redisUtil from '../util/redisutil';
 
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import uuid from 'uuid';
 import {jwk2pem} from 'pem-jwk';
-import srequest from 'sync-request'; // TODO replace with axios
 
 exports.cacheLearnInfo = (key, learnInfo) => {
   console.log(`Caching learnInfo ${key} ${JSON.stringify(learnInfo)}`);
@@ -21,20 +20,16 @@ exports.getLearnInfo = async (key) => {
   return learnInfo ?? {};
 };
 
-exports.toolLaunch = function(req, res, jwtPayload) {
-  let id_token = req.body.id_token;
-
-  this.verifyToken(id_token, jwtPayload);
-};
-
 // Validates the signature and content of the JWT
-exports.verifyToken = function(id_token) {
+exports.verifyToken = async (id_token) => {
   let parts = id_token.split('.');
 
   // Parse and store payload data from launch
   let jwtPayload = new JWTPayload();
   jwtPayload.header = JSON.parse(Buffer.from(parts[0], 'base64').toString());
-  jwtPayload.body = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+  console.log(`JWT header ${JSON.stringify(jwtPayload.header)}`);
+  jwtPayload.body = JSON.parse(Buffer.from(parts[1], 'base64').toString());1
+  console.log(`JWT body ${JSON.stringify(jwtPayload.body)}`);
   jwtPayload.verified = false;
 
   // Verify launch is from correct party
@@ -51,32 +46,20 @@ exports.verifyToken = function(id_token) {
     return null;
   }
 
-  // Do a synchronous call to dev portal to get the public key for Learn
-  let res;
+  // Get the public keys from the platform JWKS URL
   try {
-    // TODO change to use axios?
-    res = srequest('GET', config.jwksUrl);
-  } catch (err) {
-    console.log('Verify Error - request failed: ' + err);
-    return null;
-  }
+    console.log(`LMS JWKS URL ${config.jwksUrl}`);
+    const response = await axios.get(config.jwksUrl);
+    console.log(`Public keys ${JSON.stringify(response.data)}`);
 
-  if (res.statusCode !== 200) {
-    console.log('Verify Error - jwks.json call failed: ' + res.statusCode + '\n' + url);
-    return null;
-  }
+    const key = response.data.keys.find(k => k.kid === jwtPayload.header.kid);
 
-  try {
-    jwt.verify(id_token, jwk2pem(JSON.parse(res.getBody('UTF-8')).keys[0]));
+    jwt.verify(id_token, jwk2pem(key));
     jwtPayload.verified = true;
-    console.log('JWT verified ' + jwtPayload.verified);
-    console.log('JWT User ID: ' + jwtPayload.body['sub']);
-    console.log('JWT custom params: ' + JSON.stringify(jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/custom']));
-    console.log('JWT launch pres: ' + JSON.stringify(jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/launch_presentation']));
   } catch (err) {
-    console.log('Verify Error - verify failed: ' + err);
-    jwtPayload.verified = false;
+    console.log(`Get public keys failed: ${JSON.stringify(err)}`);
   }
+
   return jwtPayload;
 };
 
