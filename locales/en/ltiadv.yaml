@@ -8,4 +8,5 @@ ltiAdv:
   cancel: "Cancel"
   userName: "User name"
   userEmail: "Email"
-  userGrade: "Grade"
+  score: "Score"
+  result: "Result"

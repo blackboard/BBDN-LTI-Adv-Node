@@ -4,7 +4,8 @@ export interface IUser {
   id: string,
   name?: string,
   email?: string,
-  grade?: string
+  score?: string,
+  result?: string
 }
 
 export interface AssignmentInput {

@@ -36,4 +36,26 @@ exports.sendGrade = async (courseId, userId, score, url, token) => {
     console.log(`Error posting grade ${JSON.stringify(exception)}`);
     return {};
   }
+};
+
+exports.getResults = async (url, token) => {
+  const resultsUrl = `${url}/results`;
+
+  const options = {
+    method: 'GET',
+    uri: resultsUrl,
+    headers: {
+      'content-type': 'application/vnd.ims.lis.v2.lineitem+json',
+      Authorization: 'Bearer ' + token
+    }
+  };
+
+  try {
+    const response = await axios.get(resultsUrl, options);
+    console.log(`Grade results ${JSON.stringify(response.data)}`);
+    return response.data;
+  } catch (exception) {
+    console.log(`Error getting results ${JSON.stringify(exception)}`);
+    return [];
+  }
 }

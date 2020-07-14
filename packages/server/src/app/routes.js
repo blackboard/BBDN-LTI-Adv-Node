@@ -239,7 +239,7 @@ module.exports = function (app) {
 
     if (!token) return [];
 
-    const users = await userService.loadUsers(learnInfo.courseId, learnInfo.resourceId, learnInfo.nrpsUrl, token);
+    const users = await userService.loadUsers(learnInfo.courseId, learnInfo.resourceId, learnInfo.nrpsUrl, learnInfo.agsUrl, token);
     console.log(`returning users ${JSON.stringify(users)}`)
     res.send(users);
   });

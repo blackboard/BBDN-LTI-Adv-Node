@@ -1,15 +1,13 @@
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import _ from 'lodash';
 import {localizedComponentWrapper} from 'react-babelfish';
-import {
-  Stack, StackItem, Spinner, SpinnerSize
-} from 'office-ui-fabric-react';
+import {Stack, StackItem} from 'office-ui-fabric-react';
 import {ISortableTableHeader, SortableTable, SortDirection} from '@bb-ui-toolkit/toolkit-react/lib/SortableTable';
 import {ISortableTableRow} from "@bb-ui-toolkit/toolkit-react";
-import {AssignmentInput, IUser, createDefaultAssignmentInput} from './assignment-creator/models';
+import {AssignmentInput, createDefaultAssignmentInput, IUser} from './assignment-creator/models';
 import {parameters} from './util/parameters';
 
-import {BbPanelHeader, BbPanelType, BbPanelFooter} from '@bb-ui-toolkit/toolkit-react/lib/BbPanel';
+import {BbPanelFooter, BbPanelHeader, BbPanelType} from '@bb-ui-toolkit/toolkit-react/lib/BbPanel';
 import axios from 'axios';
 import {TextField} from '@bb-ui-toolkit/toolkit-react/lib/TextField';
 import {AssignmentPageProps} from "./util/props";
@@ -148,12 +146,13 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
         cells: [
           <span>{user.name}</span>,
           <span>{user.email}</span>,
-          <span>{user.grade}</span>
+          <span>{user.score}</span>,
+          <span>{user.result}</span>
         ]
       };
     });
-    setRows(rows)
-    setUserData(data)
+    setRows(rows);
+    setUserData(data);
   }
 
   function handleNameSort(sortDirection: SortDirection) {
@@ -176,12 +175,17 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
     {
       key: 'email',
       name: props.localize.translate('ltiAdv.userEmail'),
-      width: 200,
+      width: 200
     },
     {
-      key: 'grade',
-      name: props.localize.translate('ltiAdv.userGrade'),
-      width: 50,
+      key: 'score',
+      name: props.localize.translate('ltiAdv.score'),
+      width: 50
+    },
+    {
+      key: 'result',
+      name: props.localize.translate('ltiAdv.result'),
+      width: 50
     }
 ]
 
