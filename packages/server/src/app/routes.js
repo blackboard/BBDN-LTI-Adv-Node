@@ -13,7 +13,7 @@ import restService from './rest-service';
 module.exports = function (app) {
   app.use(cookieParser());
 
-  const LEARN_INFO_KEY = 'learnInfo';
+  const LMS_INFO_KEY = 'lmsInfo';
   
   const scopes = 'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly ' +
     'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem ' +
@@ -72,17 +72,17 @@ module.exports = function (app) {
       }
     }
 
-    const learnServer = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/tool_platform'].url;
+    const lmsServer = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/tool_platform'].url;
     const lmsType = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/tool_platform'].product_family_code;
     const custom = jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/custom'];
     const nrpsUrl = jwtPayload.body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'].context_memberships_url + '&groups=true';
     const agsUrl = jwtPayload.body['https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'].lineitem;
 
-    const learnInfo = {
+    const lmsInfo = {
       userId: jwtPayload.body['sub'],
       courseUUID: jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/context'].id,
       courseId: jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/context'].label, // Learn's Course ID
-      learnHost: learnServer,
+      lmsHost: lmsServer,
       returnUrl: encodeURI(returnUrl),
       courseName: jwtPayload.body['https://purl.imsglobal.org/spec/lti/claim/context'].title,
       locale: jwtPayload.body['locale'],
@@ -97,18 +97,17 @@ module.exports = function (app) {
       agsUrl: agsUrl
     };
 
-    console.log('learnInfo: ' + JSON.stringify(learnInfo));
-    const learnInfoKey = uuid.v4();
-    ltiAdv.cacheLearnInfo(learnInfoKey, learnInfo);
-    res.cookie(LEARN_INFO_KEY, learnInfoKey); // Store our learn info key in a cookie so we can get the data back later
-
-    // TODO remove res.cookie('learnInfo', JSON.stringify(learnInfo), {sameSite: 'none', secure: true, httpOnly: true});
+    console.log('lmsInfo: ' + JSON.stringify(lmsInfo));
+    const lmsInfoKey = uuid.v4();
+    ltiAdv.cacheLmsInfo(lmsInfoKey, lmsInfo);
+    // Store our LMS info key in a cookie so we can get the data back later
+    res.cookie(LMS_INFO_KEY, lmsInfoKey, {sameSite: 'none', secure: true, httpOnly: true});
 
     // At this point we want to get the 3LO auth code, and then OAuth2 bearer token, and THEN we can send the user
     // to the MS Teams Meeting app UI.
 
     const redirectUri = `${config.frontendUrl}/tlocode&scope=*&response_type=code&client_id=${config.appKey}&state=${cookieState}`;
-    const authcodeUrl = `${learnServer}/learn/api/public/v1/oauth2/authorizationcode?redirect_uri=${redirectUri}`;
+    const authcodeUrl = `${lmsServer}/learn/api/public/v1/oauth2/authorizationcode?redirect_uri=${redirectUri}`;
 
     console.log(`Redirect to get 3LO code ${authcodeUrl}`);
     res.redirect(authcodeUrl);
@@ -124,25 +123,25 @@ module.exports = function (app) {
       return;
     }
 
-    let learnHost = '';
+    let lmsHost = '';
     let returnUrl = '';
     let courseName = '';
     let isStudent = true;
     let isDeepLinking = false;
-    let learnLocale = 'en-us';
-    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
+    let lmsLocale = 'en-us';
+    const lmsInfo = await ltiAdv.getLmsInfo(req.cookies[LMS_INFO_KEY]);
 
-    if (learnInfo) {
-      learnHost = learnInfo.learnHost;
-      returnUrl = learnInfo.returnUrl;
-      courseName = encodeURIComponent(learnInfo.courseName);
-      learnLocale = learnInfo.locale;
-      isStudent = learnInfo.isStudent;
-      isDeepLinking = learnInfo.isDeepLinking;
+    if (lmsInfo) {
+      lmsHost = lmsInfo.lmsHost;
+      returnUrl = lmsInfo.returnUrl;
+      courseName = encodeURIComponent(lmsInfo.courseName);
+      lmsLocale = lmsInfo.locale;
+      isStudent = lmsInfo.isStudent;
+      isDeepLinking = lmsInfo.isDeepLinking;
     }
 
     const redirectUri = `${config.frontendUrl}/tlocode`;
-    const learnUrl = learnHost + `/learn/api/public/v1/oauth2/token?code=${req.query.code}&redirect_uri=${redirectUri}`;
+    const learnUrl = lmsHost + `/learn/api/public/v1/oauth2/token?code=${req.query.code}&redirect_uri=${redirectUri}`;
 
     // If we have a 3LO auth code, let's get us a bearer token here.
     const nonce = uuid.v4();
@@ -155,10 +154,10 @@ module.exports = function (app) {
 
     // Now get the LTI OAuth 2 bearer token (shame they aren't the same)
     const ltiToken = await ltiTokenService.getLTIToken(config.bbClientId, config.oauthTokenUrl, scopes, nonce);
-    console.log(`Learn LTI token ${ltiToken}`);
+    console.log(`LMS LTI token ${ltiToken}`);
 
     // Now finally redirect to the UI
-    res.redirect(`/?nonce=${nonce}&returnurl=${returnUrl}&cname=${courseName}&student=${isStudent}&dl=${isDeepLinking}&setLang=${learnLocale}#/viewAssignment`);
+    res.redirect(`/?nonce=${nonce}&returnurl=${returnUrl}&cname=${courseName}&student=${isStudent}&dl=${isDeepLinking}&setLang=${lmsLocale}#/viewAssignment`);
   });
 
   app.get('/jwtPayloadData', (req, res) => {
@@ -190,9 +189,9 @@ module.exports = function (app) {
     const restToken = await restService.getCachedToken(nonce);
     console.log(`sendAssignment got bearer token ${restToken}`);
 
-    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
+    const lmsInfo = await ltiAdv.getLmsInfo(req.cookies[LMS_INFO_KEY]);
 
-    const deepLinkReturn = await deepLinkService.createDeepContent(body.assignment, learnInfo, restToken);
+    const deepLinkReturn = await deepLinkService.createDeepContent(body.assignment, lmsInfo, restToken);
     console.log(`sendAssignment got deep link return ${JSON.stringify(deepLinkReturn)}`);
     res.send(deepLinkReturn);
   });
@@ -206,9 +205,9 @@ module.exports = function (app) {
 
   app.post('/saveSubmission', async (req, res) => {
     const nonce = req.body.nonce;
-    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
+    const lmsInfo = await ltiAdv.getLmsInfo(req.cookies[LMS_INFO_KEY]);
 
-    console.log(`saveSubmission for ${learnInfo.userId}`);
+    console.log(`saveSubmission for ${lmsInfo.userId}`);
     const assignment = req.body.assignment;
     console.log(`saveSubmission ${JSON.stringify(assignment)}`);
     const token = await ltiTokenService.getCachedLTIToken(nonce, config.bbClientId, config.oauthTokenUrl, scopes);
@@ -217,15 +216,15 @@ module.exports = function (app) {
       console.log(`saveSubmission no token`);
       res.status(404).send(`Couldn't find LTI token to send grade`);
     }
-    const response = await assignmentService.saveSubmission(learnInfo.courseId, learnInfo.userId, assignment.id, assignment, learnInfo.agsUrl, token);
+    const response = await assignmentService.saveSubmission(lmsInfo.courseId, lmsInfo.userId, assignment.id, assignment, lmsInfo.agsUrl, token);
     res.send(response);
   });
 
   app.get('/assignmentData', async (req, res) => {
-    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
+    const lmsInfo = await ltiAdv.getLmsInfo(req.cookies[LMS_INFO_KEY]);
 
-    console.log(`assignmentData for ${learnInfo.courseId}`)
-    const assignment = await assignmentService.loadAssignment(learnInfo.userId, learnInfo.resourceId, learnInfo.isStudent);
+    console.log(`assignmentData for ${lmsInfo.courseId}`)
+    const assignment = await assignmentService.loadAssignment(lmsInfo.userId, lmsInfo.resourceId, lmsInfo.isStudent);
     console.log(`returning assignmentData ${JSON.stringify(assignment)}`)
     res.send(assignment);
   });
@@ -233,14 +232,14 @@ module.exports = function (app) {
   app.get('/userData', async (req, res) => {
     const nonce = req.query.nonce;
 
-    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
-    console.log(`userData for ${learnInfo.courseId} and nonce ${nonce}`);
+    const lmsInfo = await ltiAdv.getLmsInfo(req.cookies[LMS_INFO_KEY]);
+    console.log(`userData for ${lmsInfo.courseId} and nonce ${nonce}`);
 
     const token = await ltiTokenService.getCachedLTIToken(nonce, config.bbClientId, config.oauthTokenUrl, scopes);
 
     if (!token) return [];
 
-    const users = await userService.loadUsers(learnInfo.courseId, learnInfo.resourceId, learnInfo.nrpsUrl, learnInfo.agsUrl, token);
+    const users = await userService.loadUsers(lmsInfo.courseId, lmsInfo.resourceId, lmsInfo.nrpsUrl, lmsInfo.agsUrl, token);
     console.log(`returning users ${JSON.stringify(users)}`)
     res.send(users);
   });
@@ -248,8 +247,8 @@ module.exports = function (app) {
   app.post('/sendGrade', async (req, res) => {
     const nonce = req.query.nonce;
 
-    const learnInfo = await ltiAdv.getLearnInfo(req.cookies[LEARN_INFO_KEY]);
-    console.log(`sendGrade for ${learnInfo.courseId} and nonce ${nonce}`);
+    const lmsInfo = await ltiAdv.getLmsInfo(req.cookies[LMS_INFO_KEY]);
+    console.log(`sendGrade for ${lmsInfo.courseId} and nonce ${nonce}`);
 
     const token = await ltiTokenService.getCachedLTIToken(nonce);
 
@@ -257,7 +256,7 @@ module.exports = function (app) {
       res.status(404).send(`Couldn't find LTI token to send grade`);
     }
 
-    const grade = await gradeService.sendGrade(learnInfo.courseId, learnInfo.userId, req.body.gradeInfo, learnInfo.agsUrl, token);
+    const grade = await gradeService.sendGrade(lmsInfo.courseId, lmsInfo.userId, req.body.gradeInfo, lmsInfo.agsUrl, token);
     console.log(`sent grade ${JSON.stringify(grade)}`)
     res.send(grade);
   });

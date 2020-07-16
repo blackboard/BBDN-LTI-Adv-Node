@@ -8,16 +8,16 @@ import jwt from 'jsonwebtoken';
 import uuid from 'uuid';
 import {jwk2pem} from 'pem-jwk';
 
-exports.cacheLearnInfo = (key, learnInfo) => {
-  console.log(`Caching learnInfo ${key} ${JSON.stringify(learnInfo)}`);
-  redisUtil.redisSave(key, learnInfo);
+exports.cacheLmsInfo = (key, lmsInfo) => {
+  console.log(`Caching lmsInfo ${key} ${JSON.stringify(lmsInfo)}`);
+  redisUtil.redisSave(key, lmsInfo);
 };
 
-exports.getLearnInfo = async (key) => {
-  console.log(`Getting learnInfo with key ${key}`);
-  const learnInfo = await redisUtil.redisGet(key);
-  console.log(`returning learnInfo for ${key} ${JSON.stringify(learnInfo)}`);
-  return learnInfo ?? {};
+exports.getLmsInfo = async (key) => {
+  console.log(`Getting lmsInfo with key ${key}`);
+  const lmsInfo = await redisUtil.redisGet(key);
+  console.log(`returning lmsInfo for ${key} ${JSON.stringify(lmsInfo)}`);
+  return lmsInfo ?? {};
 };
 
 // Validates the signature and content of the JWT
