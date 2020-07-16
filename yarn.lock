@@ -2179,9 +2179,10 @@
   version "1.0.1"
   resolved "http://npm.bbpd.io/repository/bb-npm/@types/jstimezonedetect/-/jstimezonedetect-1.0.1.tgz#700a460def384df3f4a820f4aea64b7424424003"
 
-"@types/lodash@4.14.149":
-  version "4.14.149"
-  resolved "http://npm.bbpd.io/repository/bb-npm/@types/lodash/-/lodash-4.14.149.tgz#1342d63d948c6062838fbf961012f74d4e638440"
+"@types/lodash@4.14.157":
+  version "4.14.157"
+  resolved "http://npm.bbpd.io/repository/bb-npm/@types/lodash/-/lodash-4.14.157.tgz#fdac1c52448861dfde1a2e1515dbc46e54926dc8"
+  integrity sha512-Ft5BNFmv2pHDgxV5JDsndOWTRJ+56zte0ZpYLowp03tW+K+t8u8YMOzAnpuqPgzX6WO1XpDIUm7u04M8vdDiVQ==
 
 "@types/lru-cache@^5.1.0":
   version "5.1.0"
@@ -8066,13 +8067,14 @@ lodash.uniq@^4.5.0:
   version "4.5.0"
   resolved "http://npm.bbpd.io/repository/bb-npm/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
 
-lodash@4.17.13:
-  version "4.17.13"
-  resolved "http://npm.bbpd.io/repository/bb-npm/lodash/-/lodash-4.17.13.tgz#0bdc3a6adc873d2f4e0c4bac285df91b64fc7b93"
-
 "lodash@>=3.5 <5", lodash@^4.17.11, lodash@^4.17.12, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.3, lodash@^4.17.4, lodash@^4.17.5, lodash@^4.2.1:
   version "4.17.15"
   resolved "http://npm.bbpd.io/repository/bb-npm/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
+
+lodash@^4.17.19:
+  version "4.17.19"
+  resolved "http://npm.bbpd.io/repository/bb-npm/lodash/-/lodash-4.17.19.tgz#e48ddedbe30b3321783c5b4301fbd353bc1e4a4b"
+  integrity sha512-JNvd8XER9GQX0v2qJgsaN/mzFCNA5BRe/j8JN9d+tWyGLSodKQHKFicdwNYzWwI3wjRnaKPsGj1XkBjx/F96DQ==
 
 lodash@~1.0.1:
   version "1.0.2"
