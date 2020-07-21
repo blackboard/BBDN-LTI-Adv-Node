@@ -73,7 +73,7 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
     // TODO validate name
 
     if (params.isDeepLinking()) {
-      // Send request to the Node server to send the stream to Learn
+      // Send request to the Node server to send the stream to the LMS
       const requestBody = {
         "nonce": params.getNonce(),
         "assignment": {
@@ -91,6 +91,7 @@ function ViewAssignmentPageComponent(props: AssignmentPageProps) {
         const form = document.createElement('form');
         form.setAttribute('action', params.getReturnUrl() as string);
         form.setAttribute('method', 'POST');
+        form.setAttribute('style', 'display: none');
         const jwtParam = document.createElement('input');
         jwtParam.setAttribute('name', 'JWT')
         jwtParam.setAttribute('value', response.data);

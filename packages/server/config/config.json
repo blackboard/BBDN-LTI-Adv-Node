@@ -10,5 +10,6 @@
   "oidcAuthUrl": "https://developer.blackboard.com/api/v1/gateway/oidcauth",
   "redis_host": "localhost",
   "redis_port": 6379,
-  "publicKeys": []
+  "publicKeys": [],
+  "privateKey": {}
 }

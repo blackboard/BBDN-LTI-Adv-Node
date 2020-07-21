@@ -1,5 +1,5 @@
-# Amazon Interactive Video Service Server
-This is a Node.js application that allows you to create and select videos to embed in Learn Ultra 
+# LTI Advantage Sample Application
+This is a Node.js application that allows you to exercise all the features of LTI Advantage 
 
 ## Requirements
 - [Node and npm](http://nodejs.org), preferable Node 10.x or higher.
@@ -21,7 +21,9 @@ You can override a number of configuration properties by creating a config_overr
   "oauthTokenUrl": "https://developer.blackboard.com/api/v1/gateway/oauth2/jwttoken",
   "oidcAuthUrl": "https://developer.blackboard.com/api/v1/gateway/oidcauth"
   "redis_host": "localhost",
-  "redis_port": 6379
+  "redis_port": 6379,
+  "publicKeys": [],
+  "privateKey": {}
 }
 ```
 
@@ -46,4 +48,4 @@ Docker specific files are included (Dockerfile, docker-compose.yml, launch.sh).
 
 Use config_override.json (same entries as config.json) to override redis host name from localhost to redis so it can access the redis docker container.
 
-If running the docker image on the same machine as the learn instance then the docker-compose.yml needs to contain the ip address of the machine being used. Start containers using __docker-compose up__
+If running the docker image on the same machine as the LMS instance then the docker-compose.yml needs to contain the ip address of the machine being used. Start containers using __docker-compose up__

@@ -1,6 +1,6 @@
-# Amazon Interactive Video Service app for Learning Management Systems
+# LTI Advantage Test Application
 
-Welcome to the Amazon Interactive Video Servic, built for Learning Management Systems and app developers to provide an easy way for users to create and embed videos. 
+Welcome to the LTI Advantage Test Application, built for Learning Management Systems and app developers to provide an easy way for users to explor the capabilities of LTI Advantage. 
 
 ## Contents
 
