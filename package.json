@@ -4,7 +4,9 @@
   "devDependencies": {
     "lerna": "^3.20.2"
   },
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "lerna run build",
     "start": "yarn build:locales && yarn build && yarn start-nb",
